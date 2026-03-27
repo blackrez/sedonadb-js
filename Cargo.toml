@@ -1,0 +1,23 @@
+
+[package]
+authors = ["LongYinan <lynweklm@gmail.com>"]
+edition = "2021"
+name = "sedona_js"
+version = "0.1.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi = { version = "3", features = ["tokio_rt"] }
+napi-derive = "3.0.0"
+datafusion = { version = "51.0.0"}
+sedona = "0.3.0"
+tokio = { version = "1.44", features = ["rt-multi-thread"]}
+
+[build-dependencies]
+napi-build = "2"
+
+[profile.release]
+lto = true
+strip = "symbols"
