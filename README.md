@@ -1,21 +1,36 @@
-# `@napi-rs/package-template`
+# `@sedonadb/sedonadb`
 
 ![https://github.com/napi-rs/package-template/actions](https://github.com/napi-rs/package-template/workflows/CI/badge.svg)
 
-> Template project for writing node packages with napi-rs.
+> Javascript binding to [SedonaDB] (https://sedona.apache.org/sedonadb/latest/)
 
 # Usage
 
-1. Click **Use this template**.
-2. **Clone** your project.
-3. Run `yarn install` to install dependencies.
-4. Run `yarn napi rename -n [@your-scope/package-name] -b [binary-name]` command under the project folder to rename your package.
+```
+➜  sedona-js git:(main) ✗ node
+Welcome to Node.js v25.8.1.
+Type ".help" for more information.
+> sedonadb = require('.')
+> await sedonadb.demo('test')
+'+-------------+----------------------------------------------+\n' +
+  '|     name    |                   geometry                   |\n' +
+  '+-------------+----------------------------------------------+\n' +
+  '| Abidjan     | POINT(-4.020206835187587 5.3231260722445715) |\n' +
+  '| Abu Dhabi   | POINT(54.3665934 24.4666836)                 |\n' +
+  '| Abuja       | POINT(7.489505042885861 9.054620406360845)   |\n' +
+  '| Accra       | POINT(-0.2186616 5.5519805)                  |\n' +
+  '| Addis Ababa | POINT(38.6980586 9.0352562)                  |\n' +
+  '+-------------+----------------------------------------------+\n'
+>
+```
 
 ## Install this test package
 
 ```bash
-yarn add @napi-rs/package-template
+npm install
+npm run build
 ```
+
 
 ## Ability
 
