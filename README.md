@@ -2,7 +2,7 @@
 
 ![https://github.com/napi-rs/package-template/actions](https://github.com/napi-rs/package-template/workflows/CI/badge.svg)
 
-> Javascript binding to [SedonaDB] (https://sedona.apache.org/sedonadb/latest/)
+> Javascript binding to [SedonaDB](https://sedona.apache.org/sedonadb/latest/)
 
 # Usage
 
