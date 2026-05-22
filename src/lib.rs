@@ -5,6 +5,10 @@ use napi_derive::napi;
 use napi::{Error, Result}; // Import napi error types
 use sedona::context::{SedonaContext, SedonaDataFrame};
 
+
+pub mod data_frame;
+pub mod session_context;
+
 #[napi]
 pub async fn demo(_sql: String) -> Result<String> {
     // Convert any DataFusionError to napi::Error

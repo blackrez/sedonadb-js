@@ -1,21 +1,20 @@
 {
-  "name": "sedona-js",
-  "version": "1.0.0",
-  "description": "Template project for writing node package with napi-rs",
+  "name": "sedonadb-js",
+  "version": "0.3.0",
+  "description": "Sedonadb binding for nodejs, deno and bun",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/napi-rs/package-template.git"
+    "url": "git+ssh://git@github.com/blackrez/sedonadb-js.git"
   },
   "license": "MIT",
   "browser": "browser.js",
   "keywords": [
-    "napi-rs",
-    "NAPI",
-    "N-API",
+    "sedonadb",
+    "Geo",
+    "database",
     "Rust",
-    "node-addon",
-    "node-addon-api"
+    "spatial"
   ],
   "files": [
     "index.d.ts",
@@ -23,7 +22,7 @@
     "browser.js"
   ],
   "napi": {
-    "binaryName": "sedona-js",
+    "binaryName": "sedonadb-js",
     "targets": [
       "x86_64-pc-windows-msvc",
       "x86_64-apple-darwin",

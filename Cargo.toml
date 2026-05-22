@@ -1,8 +1,8 @@
 
 [package]
-authors = ["LongYinan <lynweklm@gmail.com>"]
+authors = ["Nabil Servais <nabil@gnop.dev>"]
 edition = "2021"
-name = "sedona_js"
+name = "sedonadb_js"
 version = "0.1.0"
 
 [lib]
@@ -19,5 +19,8 @@ tokio = { version = "1.44", features = ["rt-multi-thread"]}
 napi-build = "2"
 
 [profile.release]
+strip = true
+opt-level = "z"
 lto = true
-strip = "symbols"
+codegen-units = 1
+panic = "abort"
