@@ -63,6 +63,13 @@ export declare class SedonaDataFrame {
   select(cols: Array<string>): Promise<SedonaDataFrame>
   /** Limit the number of rows in the DataFrame. */
   limit(n: number): Promise<SedonaDataFrame>
+  /**
+   * Register this DataFrame as a persistent view in the given session context.
+   *
+   * The view can be queried via SQL using `name`. If `overwrite` is `true`,
+   * any existing table or view with the same name will be replaced.
+   */
+  toView(ctx: SessionContext, name: string, overwrite?: boolean | undefined | null): void
 }
 
 export declare class SessionContext {

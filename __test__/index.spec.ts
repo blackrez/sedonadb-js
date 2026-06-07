@@ -199,3 +199,60 @@ test('ContextBuilder: SessionContext.new() delegates to builder', async (t) => {
   const result = await ctx.sql("SELECT ST_AsText(ST_Point(5, 6)) AS geom")
   t.is(result.rows[0][0], 'POINT(5 6)')
 })
+
+test('DataFrame toView: register a view and query it', async (t) => {
+  const ctx = await SessionContext.newLocalInteractive()
+  const df = await ctx.readParquet(
+    'https://raw.githubusercontent.com/geoarrow/geoarrow-data/v0.2.0/natural-earth/files/natural-earth_cities_geo.parquet',
+  )
+
+  // Register the DataFrame as a persistent view
+  df.toView(ctx, 'my_cities')
+
+  // Query the view
+  const result = await ctx.sql(
+    "SELECT name, ST_AsText(geometry) AS geom FROM my_cities ORDER BY name LIMIT 3",
+  )
+
+  t.is(result.numRows, 3)
+  t.is(result.columns[0], 'name')
+  t.is(result.columns[1], 'geom')
+  t.is(result.rows[0][0], 'Abidjan')
+  t.true(result.rows[0][1].startsWith('POINT('))
+})
+
+test('DataFrame toView: overwrite an existing view', async (t) => {
+  const ctx = await SessionContext.newLocalInteractive()
+  const df = await ctx.readParquet(
+    'https://raw.githubusercontent.com/geoarrow/geoarrow-data/v0.2.0/natural-earth/files/natural-earth_cities_geo.parquet',
+  )
+
+  // Register the DataFrame as a view the first time
+  df.toView(ctx, 'overwrite_cities')
+
+  const result1 = await ctx.sql('SELECT count(*) AS cnt FROM overwrite_cities')
+  const count1 = parseInt(result1.rows[0][0], 10)
+  t.true(count1 > 0)
+
+  // Register again with overwrite=true (should not error)
+  df.toView(ctx, 'overwrite_cities', true)
+
+  // The view should still work
+  const result2 = await ctx.sql('SELECT count(*) AS cnt FROM overwrite_cities')
+  const count2 = parseInt(result2.rows[0][0], 10)
+  t.is(count1, count2)
+})
+
+test('DataFrame toView: error on duplicate without overwrite', async (t) => {
+  const ctx = await SessionContext.newLocalInteractive()
+  const df = await ctx.readParquet(
+    'https://raw.githubusercontent.com/geoarrow/geoarrow-data/v0.2.0/natural-earth/files/natural-earth_cities_geo.parquet',
+  )
+
+  df.toView(ctx, 'duplicate_view')
+
+  // Second registration without overwrite should throw
+  t.throws(() => {
+    df.toView(ctx, 'duplicate_view')
+  }, { message: /already exists/i })
+})

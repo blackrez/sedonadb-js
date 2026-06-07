@@ -620,6 +620,11 @@ before-after-hook@^4.0.0:
   resolved "https://registry.npmjs.org/before-after-hook/-/before-after-hook-4.0.0.tgz"
   integrity sha512-q6tR3RPqIB1pMiTRMFcZwuG5T8vwp+vUvEG0vuI6B+Rikh5BfPp2fQ82c925FOs+b0lcFQ8CFrL+KbilfZFhOQ==
 
+bench@^0.3.6:
+  version "0.3.6"
+  resolved "https://registry.npmjs.org/bench/-/bench-0.3.6.tgz"
+  integrity sha512-50WAQi8297q1doTzg9ERO8kE1hwU8gbJFfajTRJjGIsV3EUFTUXCSKUuLpiEpXbh1TEox9W2E8ued5vBhrUhMA==
+
 bindings@^1.4.0:
   version "1.5.0"
   resolved "https://registry.npmjs.org/bindings/-/bindings-1.5.0.tgz"

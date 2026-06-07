@@ -3,7 +3,7 @@
 authors = ["Nabil Servais <nabil@gnop.dev>"]
 edition = "2021"
 name = "sedonadb_js"
-version = "0.1.0"
+version = "0.3.0"
 
 [lib]
 crate-type = ["cdylib"]
@@ -11,9 +11,10 @@ crate-type = ["cdylib"]
 [dependencies]
 napi = { version = "3", features = ["tokio_rt"] }
 napi-derive = "3.0.0"
-datafusion = { version = "51.0.0"}
+datafusion = { version = "52"}
 arrow = { version = "57", default-features = false, features = ["prettyprint"] }
-sedona = "0.3.0"
+#sedona = "0.3.0"
+sedona = {git = "https://github.com/apache/sedona-db", features = ["s2geography"] }
 tokio = { version = "1.44", features = ["rt-multi-thread"]}
 
 [build-dependencies]

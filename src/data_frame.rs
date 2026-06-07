@@ -1,6 +1,8 @@
 use napi_derive::napi;
 use napi::Result;
 
+use crate::session_context::SessionContext;
+
 /// Schema field metadata
 #[napi(object)]
 #[derive(Clone)]
@@ -153,5 +155,32 @@ impl SedonaDataFrame {
             .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
         Ok(SedonaDataFrame { inner: df })
+    }
+
+    /// Register this DataFrame as a persistent view in the given session context.
+    ///
+    /// The view can be queried via SQL using `name`. If `overwrite` is `true`,
+    /// any existing table or view with the same name will be replaced.
+    #[napi]
+    pub fn to_view(
+        &self,
+        ctx: &SessionContext,
+        name: String,
+        overwrite: Option<bool>,
+    ) -> Result<()> {
+        let provider = self.inner.clone().into_view();
+        let overwrite = overwrite.unwrap_or(false);
+
+        if overwrite {
+            // Silently succeed if the table doesn't exist
+            let _ = ctx.inner.ctx.deregister_table(&name);
+        }
+
+        ctx.inner
+            .ctx
+            .register_table(&name, provider)
+            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+        Ok(())
     }
 }
