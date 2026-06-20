@@ -39,6 +39,9 @@ jobs:
         with:
           components: clippy, rustfmt
 
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libgeos-dev
+
       - name: Install dependencies
         run: yarn install
 
@@ -66,16 +69,16 @@ jobs:
             build: yarn build --target x86_64-unknown-linux-gnu --use-napi-cross
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            build: yarn build --target x86_64-unknown-linux-musl -x
+            build: yarn build --target x86_64-unknown-linux-musl -x -F static-geos
           - host: macos-latest
             target: aarch64-apple-darwin
             build: yarn build --target aarch64-apple-darwin
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            build: yarn build --target aarch64-unknown-linux-gnu --use-napi-cross
+            build: yarn build --target aarch64-unknown-linux-gnu --use-napi-cross -F static-geos
           - host: ubuntu-latest
             target: aarch64-unknown-linux-musl
-            build: yarn build --target aarch64-unknown-linux-musl -x
+            build: yarn build --target aarch64-unknown-linux-musl -x -F static-geos
     name: stable - ${{ matrix.settings.target }}
     runs-on: ${{ matrix.settings.host }}
     steps:
@@ -117,6 +120,24 @@ jobs:
         run: ${{ matrix.settings.setup }}
         if: ${{ matrix.settings.setup }}
         shell: bash
+
+      - name: Install GEOS (Linux)
+        if: matrix.settings.target == 'x86_64-unknown-linux-gnu'
+        run: sudo apt-get update && sudo apt-get install -y libgeos-dev
+
+      - name: Install GEOS (macOS)
+        if: matrix.settings.host == 'macos-latest'
+        run: brew install geos
+
+      - name: Install GEOS (Windows)
+        if: ${{ contains(matrix.settings.host, 'windows') }}
+        shell: pwsh
+        run: |
+          $triplet = if ('${{ matrix.settings.host }}' -eq 'windows-11-arm') { 'arm64-windows' } else { 'x64-windows' }
+          vcpkg install geos --triplet $triplet
+          echo "GEOS_LIB_DIR=$env:VCPKG_INSTALLATION_ROOT\installed\$triplet\lib" >> $env:GITHUB_ENV
+          echo "GEOS_VERSION=3.14.1" >> $env:GITHUB_ENV
+
       - name: Install dependencies
         run: yarn install
       - name: Build
@@ -149,7 +170,7 @@ jobs:
           environment_variables: 'DEBUG RUSTUP_IO_THREADS'
           shell: bash
           run: |
-            sudo pkg install -y -f curl node libnghttp2 npm cmake
+            sudo pkg install -y -f curl node libnghttp2 npm cmake geos
             sudo npm install -g corepack
             corepack enable
             curl https://sh.rustup.rs -sSf --output rustup.sh
