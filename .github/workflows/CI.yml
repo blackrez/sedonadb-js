@@ -40,7 +40,7 @@ jobs:
           components: clippy, rustfmt
 
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libgeos-dev
+        run: sudo apt-get update && sudo apt-get install -y libgeos-dev libabsl20260107
 
       - name: Install dependencies
         run: yarn install
