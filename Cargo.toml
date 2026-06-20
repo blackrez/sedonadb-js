@@ -16,7 +16,6 @@ futures = "0.3"
 datafusion = { version = "52"}
 arrow = { version = "57", default-features = false, features = ["prettyprint", "ipc"] }
 serde_arrow = { version = "0.14", features = ["arrow-57"] }
-#sedona = "0.3.0"
 sedona = {git = "https://github.com/apache/sedona-db", features = ["s2geography", "tg", "spatial-join"] }
 sedona-tg = { git = "https://github.com/apache/sedona-db", paqth = "c/sedona-tg" }
 tokio = { version = "1.44", features = ["rt-multi-thread"]}

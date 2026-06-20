@@ -30,15 +30,15 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: yarn
+          cache: npm
       - name: Install
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
       - name: Install dependencies
-        run: yarn install
+        run: npm install
       - name: Oxlint
-        run: yarn lint
+        run: npm run lint
       - name: Cargo fmt
         run: cargo fmt -- --check
       - name: Clippy
@@ -48,18 +48,18 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - host: macos-latest
-            target: x86_64-apple-darwin
-            build: yarn build --target x86_64-apple-darwin
           - host: windows-latest
-            build: yarn build --target x86_64-pc-windows-msvc
+            build: npm build --target x86_64-pc-windows-msvc
             target: x86_64-pc-windows-msvc
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            build: yarn build --target x86_64-unknown-linux-gnu --use-napi-cross
+            build: npm build --target x86_64-unknown-linux-gnu --use-napi-cross
           - host: macos-latest
             target: aarch64-apple-darwin
-            build: yarn build --target aarch64-apple-darwin
+            build: npm build --target aarch64-apple-darwin
+          - host: macos-latest
+            target: aarch64-unknow-linux-gnu
+            build: npm build --target aarch64-unknow-linux --use-napi-cross         
     name: stable - ${{ matrix.settings.target }} - node@22
     runs-on: ${{ matrix.settings.host }}
     steps:
@@ -68,7 +68,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: yarn
+          cache: npm
       - name: Install
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -101,7 +101,7 @@ jobs:
         if: ${{ matrix.settings.setup }}
         shell: bash
       - name: Install dependencies
-        run: yarn install
+        run: npm install
       - name: Build
         run: ${{ matrix.settings.build }}
         shell: bash
@@ -111,7 +111,6 @@ jobs:
           name: bindings-${{ matrix.settings.target }}
           path: |
             ${{ env.APP_NAME }}.*.node
-            ${{ env.APP_NAME }}.*.wasm
           if-no-files-found: error
   test-macOS-windows-binding:
     name: Test bindings on ${{ matrix.settings.target }} - node@${{ matrix.node }}
@@ -127,12 +126,15 @@ jobs:
           - host: macos-latest
             target: aarch64-apple-darwin
             architecture: arm64
-          - host: macos-latest
-            target: x86_64-apple-darwin
-            architecture: x64
+         - host: linux
+           target: aarch64-unknown-linux
+           architecture: arm64
+         - host: linux
+           target: x86_64-unknow-linux
+           architecture: x86 
         node:
-          - '20'
-          - '22'
+          - '26'
+          - '24'
     runs-on: ${{ matrix.settings.host }}
     steps:
       - uses: actions/checkout@v6
@@ -140,10 +142,10 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
-          cache: yarn
+          cache: npm
           architecture: ${{ matrix.settings.architecture }}
       - name: Install dependencies
-        run: yarn install
+        run: npm install
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
@@ -153,7 +155,7 @@ jobs:
         run: ls -R .
         shell: bash
       - name: Test bindings
-        run: yarn test
+        run: npm test
   test-linux-binding:
     name: Test ${{ matrix.target }} - node@${{ matrix.node }}
     needs:
@@ -164,8 +166,8 @@ jobs:
         target:
           - x86_64-unknown-linux-gnu
         node:
-          - '20'
-          - '22'
+          - '26'
+          - '24'
     runs-on: ${{ contains(matrix.target, 'aarch64') && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v6
