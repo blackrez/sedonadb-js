@@ -17,7 +17,8 @@ datafusion = { version = "52"}
 arrow = { version = "57", default-features = false, features = ["prettyprint", "ipc"] }
 serde_arrow = { version = "0.14", features = ["arrow-57"] }
 sedona = {git = "https://github.com/apache/sedona-db", features = ["s2geography", "tg", "spatial-join"] }
-sedona-tg = { git = "https://github.com/apache/sedona-db", paqth = "c/sedona-tg" }
+geos = { version = "11.1.1", features = ["geo", "v3_12_0"] }
+sedona-tg = { git = "https://github.com/apache/sedona-db", path = "c/sedona-tg" }
 tokio = { version = "1.44", features = ["rt-multi-thread"]}
 lru = "0.18"
 mimalloc = { version = "0.1", default-features = false }
@@ -25,6 +26,9 @@ libmimalloc-sys = "0.1.49"
 
 [build-dependencies]
 napi-build = "2"
+
+[features]
+static-geos = ["geos/static"]
 
 [profile.release]
 strip = true
