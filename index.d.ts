@@ -31,6 +31,32 @@ export declare class ContextBuilder {
 }
 
 /**
+ * A pre-planned SQL statement with optional parameter bindings.
+ *
+ * Created via [`SessionContext::prepare`]. Use [`execute`](#method.execute) to run
+ * the same query repeatedly with different parameters without re-parsing the SQL.
+ *
+ * # Performance
+ *
+ * `prepare`+`execute` is significantly faster than calling `sql()` repeatedly with
+ * the same query text because:
+ * - SQL parsing + schema resolution happens once in `prepare`
+ * - Each `execute` only does plan cloning + parameter substitution + execution
+ */
+export declare class PreparedStatement {
+  /**
+   * Execute the prepared statement with the given parameter bindings.
+   *
+   * - An array for positional params (`$1`, `$2` in SQL)
+   * - An object for named params (`$name` in SQL)
+   *
+   * Value types are inferred from JS: number → Float64, string → Utf8,
+   * boolean → Boolean, null → Null.
+   */
+  execute(params?: any | undefined | null): Promise<QueryResult>
+}
+
+/**
  * A SedonaDB DataFrame — wraps a DataFusion DataFrame with spatial extensions.
  *
  * Returned from `SessionContext.sql()` and `readParquet()`.
@@ -40,12 +66,43 @@ export declare class SedonaDataFrame {
   /** Get the schema of this DataFrame */
   schema(): Array<SchemaField>
   /**
-   * Execute the DataFrame and return all rows as arrays of strings.
+   * Execute the DataFrame and return a [`QueryResult`] containing typed JS rows
+   * and an Arrow IPC buffer.
    *
-   * Each value is formatted using Arrow's Display implementation.
-   * Null values are returned as empty strings.
+   * The result includes typed rows (numbers stay numbers, nulls stay null),
+   * column names, row count, and a binary Arrow IPC stream for advanced use
+   * with `@apache-arrow`.
    */
-  collect(): Promise<Array<Array<string>>>
+  collect(): Promise<QueryResult>
+  /**
+   * Execute the DataFrame and return only the row-oriented results (no Arrow IPC).
+   *
+   * Avoids the cost of Arrow IPC serialization compared to [`collect`](#method.collect).
+   * Returns a [`QueryResult`] with columns, numRows, and rows, but arrowIpc will be empty.
+   */
+  collectRows(): Promise<QueryResult>
+  /**
+   * Execute the DataFrame and return only the Arrow IPC stream buffer (no row conversion).
+   *
+   * Avoids the cost of serde_arrow row serialization compared to [`collect`](#method.collect).
+   * Returns raw IPC bytes — use with `@apache-arrow`'s `tableFromIPC()`:
+   *
+   * ```js
+   * import { tableFromIPC } from '@apache-arrow';
+   * const table = tableFromIPC(new Uint8Array(buffer));
+   * ```
+   */
+  collectArrow(): Promise<Array<number>>
+  /**
+   * Execute the DataFrame and return a ReadableStream of rows.
+   *
+   * Each row is yielded as an array of strings, using Arrow's Display
+   * formatting. Null values are returned as empty strings.
+   * The stream lazily evaluates the query — rows are produced as the
+   * consumer reads them, so large result sets can be processed without
+   * buffering everything in memory.
+   */
+  stream(): ReadableStream<Array<string>>
   /**
    * Print the first `limit` rows as a formatted ASCII table string.
    *
@@ -87,13 +144,101 @@ export declare class SessionContext {
    * This is equivalent to `SessionContext.new()`.
    */
   static newLocalInteractive(): Promise<SessionContext>
-  /** Execute a SQL query and return the results as a structured object. */
-  sql(query: string): Promise<QueryResult>
+  /**
+   * Execute a SQL query and return the results as a structured object.
+   *
+   * Optionally accepts parameter bindings:
+   * - An array for positional params (`$1`, `$2` in SQL)
+   * - An object for named params (`$name` in SQL)
+   *
+   * Value types are inferred from JS: number → Float64, string → Utf8,
+   * boolean → Boolean, null → Null.
+   *
+   * # Performance
+   *
+   * When called repeatedly with the same SQL but different params, the plan
+   * is cached internally (LRU, 100 entries) so SQL parsing + schema resolution
+   * are skipped on cache hits. For maximal control, use [`prepare`](#method.prepare)
+   * + [`PreparedStatement::execute`].
+   */
+  sql(query: string, params?: any | undefined | null): Promise<QueryResult>
+  /**
+   * Prepare a SQL query for repeated execution with different parameters.
+   *
+   * Parses and plans the SQL once. The returned [`PreparedStatement`] can be
+   * executed many times with different params via
+   * [`PreparedStatement::execute`], avoiding repeated SQL parsing + schema
+   * resolution.
+   *
+   * # Example (JavaScript)
+   *
+   * ```js
+   * const stmt = ctx.prepare("SELECT * FROM table WHERE id = $1");
+   * const r1 = await stmt.execute([42]);
+   * const r2 = await stmt.execute([99]);
+   * ```
+   */
+  prepare(query: string): Promise<PreparedStatement>
+  /**
+   * Execute a SQL query and return only the row-oriented results (no Arrow IPC buffer).
+   *
+   * Avoids the cost of Arrow IPC serialization compared to [`sql`](#method.sql).
+   * Returns the same [`QueryResult`] with columns, numRows, and rows, but arrowIpc
+   * will be empty.
+   *
+   * Optionally accepts parameter bindings — same semantics as [`sql`](#method.sql).
+   */
+  sqlRows(query: string, params?: any | undefined | null): Promise<QueryResult>
+  /**
+   * Execute a SQL query and return only the Arrow IPC stream buffer (no row conversion).
+   *
+   * Avoids the cost of serde_arrow row serialization compared to [`sql`](#method.sql).
+   * Returns a raw binary buffer usable with `@apache-arrow`'s `tableFromIPC()`:
+   *
+   * ```js
+   * import { tableFromIPC } from '@apache-arrow';
+   * const table = tableFromIPC(new Uint8Array(buffer));
+   * ```
+   *
+   * Optionally accepts parameter bindings — same semantics as [`sql`](#method.sql).
+   */
+  sqlArrow(query: string, params?: any | undefined | null): Promise<Array<number>>
+  /**
+   * Execute a SQL query and return the results as a ReadableStream of rows.
+   *
+   * Each row is yielded as an array of strings, using Arrow's Display
+   * formatting. Null values are returned as empty strings.
+   * The stream lazily evaluates the query — rows are produced as the
+   * consumer reads them, so large result sets can be processed without
+   * buffering everything in memory.
+   *
+   * Optionally accepts parameter bindings:
+   * - An array for positional params (`$1`, `$2` in SQL)
+   * - An object for named params (`$name` in SQL)
+   */
+  streamSql(query: string, params?: any | undefined | null): ReadableStream<Array<string>>
   /** Register a DataFrame as a temporary view for SQL queries. */
   registerTable(name: string, df: SedonaDataFrame): void
   /** Read a GeoParquet file and return a DataFrame for further processing. */
   readParquet(path: string): Promise<SedonaDataFrame>
+  /**
+   * Read a GeoParquet file and immediately register it as a view.
+   *
+   * This avoids returning a DataFrame across the NAPI-RS async boundary,
+   * which can crash with large datasets. The table is registered with the
+   * given `name` and can be queried via SQL.
+   */
+  registerParquetTable(name: string, path: string, overwrite?: boolean | undefined | null): Promise<void>
 }
+
+/**
+ * Decode an Arrow IPC buffer back to string-formatted rows.
+ *
+ * This is a backward-compatibility helper — prefer using `@apache-arrow`
+ * directly for type-safe access. The returned rows match the old
+ * `QueryResult.rows` format (nulls → empty strings).
+ */
+export declare function ipcToRows(arrowIpc: Array<number>): Array<Array<string>>
 
 /**
  * A SedonaDB session context — the entry point for all spatial data operations.
@@ -104,10 +249,31 @@ export declare class SessionContext {
 export interface QueryResult {
   /** Column names in result order */
   columns: Array<string>
-  /** Row-oriented data — each inner vec is one row's values as strings */
-  rows: Array<Array<string>>
   /** Number of rows returned */
   numRows: number
+  /**
+   * Row-oriented data — each inner vec is one row's values as native JS types.
+   *
+   * Values preserve their Arrow types:
+   * - numbers → JS number
+   * - strings → JS string
+   * - booleans → JS boolean
+   * - null   → JS null
+   * - complex types (geometries, lists, etc.) → JS string via Arrow Display
+   */
+  rows: Array<Array<any>>
+  /**
+   * Arrow IPC stream buffer (Apache Arrow streaming format).
+   *
+   * Contains the same data as a columnar binary representation, preserving
+   * full type fidelity including null bitmaps. Use with `@apache-arrow`:
+   *
+   * ```js
+   * import { tableFromIPC } from '@apache-arrow';
+   * const table = tableFromIPC(new Uint8Array(result.arrowIpc));
+   * ```
+   */
+  arrowIpc: Array<number>
 }
 
 /** Schema field metadata */

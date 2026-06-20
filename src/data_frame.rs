@@ -1,7 +1,10 @@
 use napi_derive::napi;
 use napi::Result;
+use napi::bindgen_prelude::{ReadableStream, spawn};
+use napi::Env;
+use futures::StreamExt;
 
-use crate::session_context::SessionContext;
+use crate::session_context::{SessionContext, QueryResult, record_batches_to_ipc, binary_cols_to_strings};
 
 /// Schema field metadata
 #[napi(object)]
@@ -41,12 +44,14 @@ impl SedonaDataFrame {
             .collect()
     }
 
-    /// Execute the DataFrame and return all rows as arrays of strings.
+    /// Execute the DataFrame and return a [`QueryResult`] containing typed JS rows
+    /// and an Arrow IPC buffer.
     ///
-    /// Each value is formatted using Arrow's Display implementation.
-    /// Null values are returned as empty strings.
+    /// The result includes typed rows (numbers stay numbers, nulls stay null),
+    /// column names, row count, and a binary Arrow IPC stream for advanced use
+    /// with `@apache-arrow`.
     #[napi]
-    pub async fn collect(&self) -> Result<Vec<Vec<String>>> {
+    pub async fn collect(&self) -> Result<QueryResult> {
         let batches = self
             .inner
             .clone()
@@ -54,28 +59,181 @@ impl SedonaDataFrame {
             .await
             .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
-        let mut rows = Vec::new();
+        let columns = if batches.is_empty() {
+            vec![]
+        } else {
+            batches[0]
+                .schema()
+                .fields()
+                .iter()
+                .map(|f| f.name().clone())
+                .collect()
+        };
+
+        let num_rows: i64 = batches.iter().map(|b| b.num_rows() as i64).sum();
+        let arrow_ipc = record_batches_to_ipc(&batches)?;
+
+        // Build native JS-typed rows using serde_arrow.
+        // Binary columns (geometry WKB) are converted to strings first.
+        let mut rows = Vec::with_capacity(num_rows as usize);
         for batch in &batches {
-            let num_rows = batch.num_rows();
-            let num_cols = batch.num_columns();
-            for row_idx in 0..num_rows {
-                let mut row = Vec::with_capacity(num_cols);
-                for col_idx in 0..num_cols {
-                    let array = batch.column(col_idx);
-                    if array.is_null(row_idx) {
-                        row.push(String::new());
-                    } else {
-                        let s =
-                            arrow::util::display::array_value_to_string(array.as_ref(), row_idx)
-                                .unwrap_or_else(|_| String::new());
-                        row.push(s);
-                    }
+            let safe = binary_cols_to_strings(batch)?;
+            let items: Vec<serde_json::Value> = serde_arrow::from_record_batch(&safe)
+                .map_err(|e| napi::Error::from_reason(format!("serde_arrow: {e}")))?;
+
+            for item in items {
+                if let serde_json::Value::Object(map) = item {
+                    let row: Vec<serde_json::Value> = columns
+                        .iter()
+                        .map(|c| map.get(c).cloned().unwrap_or(serde_json::Value::Null))
+                        .collect();
+                    rows.push(row);
+                } else {
+                    rows.push(vec![item]);
                 }
-                rows.push(row);
             }
         }
 
-        Ok(rows)
+        Ok(QueryResult {
+            columns,
+            num_rows,
+            rows,
+            arrow_ipc,
+        })
+    }
+
+    /// Execute the DataFrame and return only the row-oriented results (no Arrow IPC).
+    ///
+    /// Avoids the cost of Arrow IPC serialization compared to [`collect`](#method.collect).
+    /// Returns a [`QueryResult`] with columns, numRows, and rows, but arrowIpc will be empty.
+    #[napi]
+    pub async fn collect_rows(&self) -> Result<QueryResult> {
+        let batches = self
+            .inner
+            .clone()
+            .collect()
+            .await
+            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+        let columns = if batches.is_empty() {
+            vec![]
+        } else {
+            batches[0]
+                .schema()
+                .fields()
+                .iter()
+                .map(|f| f.name().clone())
+                .collect()
+        };
+
+        let num_rows: i64 = batches.iter().map(|b| b.num_rows() as i64).sum();
+
+        // Build native JS-typed rows using serde_arrow.
+        let mut rows = Vec::with_capacity(num_rows as usize);
+        for batch in &batches {
+            let safe = binary_cols_to_strings(batch)?;
+            let items: Vec<serde_json::Value> = serde_arrow::from_record_batch(&safe)
+                .map_err(|e| napi::Error::from_reason(format!("serde_arrow: {e}")))?;
+
+            for item in items {
+                if let serde_json::Value::Object(map) = item {
+                    let row: Vec<serde_json::Value> = columns
+                        .iter()
+                        .map(|c| map.get(c).cloned().unwrap_or(serde_json::Value::Null))
+                        .collect();
+                    rows.push(row);
+                } else {
+                    rows.push(vec![item]);
+                }
+            }
+        }
+
+        Ok(QueryResult {
+            columns,
+            num_rows,
+            rows,
+            arrow_ipc: vec![],
+        })
+    }
+
+    /// Execute the DataFrame and return only the Arrow IPC stream buffer (no row conversion).
+    ///
+    /// Avoids the cost of serde_arrow row serialization compared to [`collect`](#method.collect).
+    /// Returns raw IPC bytes — use with `@apache-arrow`'s `tableFromIPC()`:
+    ///
+    /// ```js
+    /// import { tableFromIPC } from '@apache-arrow';
+    /// const table = tableFromIPC(new Uint8Array(buffer));
+    /// ```
+    #[napi]
+    pub async fn collect_arrow(&self) -> Result<Vec<u8>> {
+        let batches = self
+            .inner
+            .clone()
+            .collect()
+            .await
+            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+        record_batches_to_ipc(&batches)
+    }
+
+    /// Execute the DataFrame and return a ReadableStream of rows.
+    ///
+    /// Each row is yielded as an array of strings, using Arrow's Display
+    /// formatting. Null values are returned as empty strings.
+    /// The stream lazily evaluates the query — rows are produced as the
+    /// consumer reads them, so large result sets can be processed without
+    /// buffering everything in memory.
+    #[napi]
+    pub fn stream<'env>(&self, env: Env) -> Result<ReadableStream<'env, Vec<String>>> {
+        let df = self.inner.clone();
+
+        // Bounded channel provides backpressure — if the consumer reads
+        // slowly, the producer will block instead of buffering indefinitely.
+        let (mut tx, rx) = futures::channel::mpsc::channel::<Vec<String>>(64);
+
+        spawn(async move {
+            let mut stream = match df.execute_stream().await {
+                Ok(s) => s,
+                Err(_) => {
+                    let _ = tx.try_send(Vec::new()); // empty row signals error
+                    return;
+                }
+            };
+
+            while let Some(batch_result) = stream.next().await {
+                let batch = match batch_result {
+                    Ok(b) => b,
+                    Err(_) => {
+                        let _ = tx.try_send(Vec::new());
+                        break;
+                    }
+                };
+                let num_rows = batch.num_rows();
+                let num_cols = batch.num_columns();
+                for row_idx in 0..num_rows {
+                    let mut row = Vec::with_capacity(num_cols);
+                    for col_idx in 0..num_cols {
+                        let array = batch.column(col_idx);
+                        if array.is_null(row_idx) {
+                            row.push(String::new());
+                        } else {
+                            let s = arrow::util::display::array_value_to_string(
+                                array.as_ref(),
+                                row_idx,
+                            )
+                            .unwrap_or_else(|_| String::new());
+                            row.push(s);
+                        }
+                    }
+                    if tx.try_send(row).is_err() {
+                        return; // stream canceled (receiver dropped)
+                    }
+                }
+            }
+        });
+
+        ReadableStream::new(&env, rx.map(Ok))
     }
 
     /// Print the first `limit` rows as a formatted ASCII table string.

@@ -9,13 +9,20 @@ version = "0.3.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-napi = { version = "3", features = ["tokio_rt"] }
+napi = { version = "3", features = ["tokio_rt", "napi6", "web_stream", "serde-json"] }
 napi-derive = "3.0.0"
+serde_json = "1"
+futures = "0.3"
 datafusion = { version = "52"}
-arrow = { version = "57", default-features = false, features = ["prettyprint"] }
+arrow = { version = "57", default-features = false, features = ["prettyprint", "ipc"] }
+serde_arrow = { version = "0.14", features = ["arrow-57"] }
 #sedona = "0.3.0"
-sedona = {git = "https://github.com/apache/sedona-db", features = ["s2geography"] }
+sedona = {git = "https://github.com/apache/sedona-db", features = ["s2geography", "tg", "spatial-join"] }
+sedona-tg = { git = "https://github.com/apache/sedona-db", paqth = "c/sedona-tg" }
 tokio = { version = "1.44", features = ["rt-multi-thread"]}
+lru = "0.18"
+mimalloc = { version = "0.1", default-features = false }
+libmimalloc-sys = "0.1.49"
 
 [build-dependencies]
 napi-build = "2"

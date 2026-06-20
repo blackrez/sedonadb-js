@@ -577,5 +577,7 @@ if (!nativeBinding) {
 
 module.exports = nativeBinding
 module.exports.ContextBuilder = nativeBinding.ContextBuilder
+module.exports.PreparedStatement = nativeBinding.PreparedStatement
 module.exports.SedonaDataFrame = nativeBinding.SedonaDataFrame
 module.exports.SessionContext = nativeBinding.SessionContext
+module.exports.ipcToRows = nativeBinding.ipcToRows
