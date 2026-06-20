@@ -73,10 +73,10 @@ jobs:
           - host: macos-latest
             target: aarch64-apple-darwin
             build: yarn build --target aarch64-apple-darwin
-          - host: ubuntu-latest
+          - host: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
-            build: yarn build --target aarch64-unknown-linux-gnu --use-napi-cross -F static-geos
-          - host: ubuntu-latest
+            build: yarn build --target aarch64-unknown-linux-gnu -F static-geos
+          - host: ubuntu-24.04-arm
             target: aarch64-unknown-linux-musl
             build: yarn build --target aarch64-unknown-linux-musl -x -F static-geos
     name: stable - ${{ matrix.settings.target }}
@@ -122,12 +122,12 @@ jobs:
         shell: bash
 
       - name: Install GEOS (Linux)
-        if: matrix.settings.target == 'x86_64-unknown-linux-gnu'
+        if: matrix.settings.target == 'x86_64-unknown-linux-gnu' || matrix.settings.target == 'aarch64-unknown-linux-gnu'
         run: sudo apt-get update && sudo apt-get install -y libgeos-dev
 
       - name: Install GEOS (macOS)
         if: matrix.settings.host == 'macos-latest'
-        run: brew install geos
+        run: brew install geos abseil
 
       - name: Install GEOS (Windows)
         if: ${{ contains(matrix.settings.host, 'windows') }}
