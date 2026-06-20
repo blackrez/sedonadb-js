@@ -106,8 +106,9 @@
     "singleQuote": true,
     "arrowParens": "always"
   },
-  "packageManager": "yarn@4.13.0",
+  "packageManager": "yarn@4.17.0",
   "dependencies": {
-    "bench": "^0.3.6"
+    "bench": "^0.3.6",
+    "corepack": "^0.35.0"
   }
 }
