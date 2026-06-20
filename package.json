@@ -25,9 +25,12 @@
     "binaryName": "sedonadb-js",
     "targets": [
       "x86_64-pc-windows-msvc",
-      "x86_64-apple-darwin",
       "x86_64-unknown-linux-gnu",
-      "aarch64-apple-darwin"
+      "aarch64-apple-darwin",
+      "aarch64-unknown-linux-gnu",
+      "x86_64-unknown-freebsd",
+      "aarch64-unknown-linux-musl",
+      "aarch64-pc-windows-msvc",
     ]
   },
   "engines": {
@@ -66,7 +69,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.1.6",
     "npm-run-all2": "^8.0.4",
-    "oxlint": "^1.14.0",
+    "oxlint": "^1.70.0",
     "prettier": "^3.6.2",
     "tinybench": "^6.0.0",
     "typescript": "^6.0.0"
@@ -103,7 +106,7 @@
     "singleQuote": true,
     "arrowParens": "always"
   },
-  "packageManager": "yarn@4.13.0",
+  "packageManager": "npm@4.13.0",
   "dependencies": {
     "bench": "^0.3.6"
   }
