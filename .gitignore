@@ -128,3 +128,6 @@ Cargo.lock
 !.yarn/sdks
 !.yarn/versions
 /npm
+
+# package-lock.json is not used — the project uses Yarn with yarn.lock
+package-lock.json

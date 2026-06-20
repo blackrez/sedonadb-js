@@ -106,7 +106,7 @@
     "singleQuote": true,
     "arrowParens": "always"
   },
-  "packageManager": "npm@4.13.0",
+  "packageManager": "yarn@4.13.0",
   "dependencies": {
     "bench": "^0.3.6"
   }
