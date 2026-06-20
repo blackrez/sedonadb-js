@@ -64,10 +64,10 @@ jobs:
           - host: windows-11-arm
             build: yarn build --target aarch64-pc-windows-msvc
             target: aarch64-pc-windows-msvc
-          - host: ubuntu-latest
+          - host: ubuntu-26.04
             target: x86_64-unknown-linux-gnu
             build: yarn build --target x86_64-unknown-linux-gnu --use-napi-cross
-          - host: ubuntu-latest
+          - host: ubuntu-26.04
             target: x86_64-unknown-linux-musl
             build: yarn build --target x86_64-unknown-linux-musl -x -F static-geos
           - host: macos-latest
@@ -261,7 +261,7 @@ jobs:
         exclude:
           - target: armv7-unknown-linux-gnueabihf
             node: '24'
-    runs-on: ${{ contains(matrix.target, 'aarch64') && 'ubuntu-26.04-arm' || 'ubuntu-latest' }}
+    runs-on: ${{ contains(matrix.target, 'aarch64') && 'ubuntu-26.04-arm' || 'ubuntu-26.04' }}
     steps:
       - uses: actions/checkout@v6
       - name: Setup node
