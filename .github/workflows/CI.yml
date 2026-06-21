@@ -40,7 +40,7 @@ jobs:
           components: clippy, rustfmt
 
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential cmake libssl-dev libproj-dev libgeos-dev libgdal-dev libabsl-dev
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake libssl-dev libproj-dev libgeos-dev libgdal-dev libabsl-dev cmake musl-tools musl-dev
 
       - name: Install dependencies
         run: yarn install
