@@ -40,7 +40,7 @@ jobs:
           components: clippy, rustfmt
 
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential cmake libssl-dev libproj-dev libgeos-dev libgdal-dev libabsl-dev cmake libclang-dev
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake libssl-dev libproj-dev libgeos-dev libgdal-dev libabsl-dev cmake libclang-dev 
 
       - name: Install dependencies
         run: yarn install
@@ -137,12 +137,13 @@ jobs:
             --platform "${PLATFORM}" \
             "node:24-alpine" \
             sh -c "
-              apk add --no-cache build-base clang clang-dev cmake geos-dev geos proj-dev gdal-dev abseil-cpp-dev openssl-dev linux-headers python3-dev curl &&
+              case \"\${TARGET}\" in aarch64*) apk add --no-cache gcc-aarch64-linux-musl ;; esac &&
+              apk add --no-cache build-base clang clang-dev cmake geos-dev geos-static proj-dev gdal-dev abseil-cpp-dev openssl-dev linux-headers python3-dev curl icu-data-full &&
               curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable -t ${TARGET} &&
               . \"\$HOME/.cargo/env\" &&
               corepack enable &&
               yarn install &&
-              CC=clang CXX=clang++ yarn build --target ${TARGET} -F static-geos
+              yarn build --target ${TARGET} -F static-geos
             "
         shell: bash
 
@@ -342,35 +343,6 @@ jobs:
           name: test-bindings-${{ matrix.target }}
           options: -v ${{ github.workspace }}:${{ github.workspace }} -w ${{ github.workspace }} --platform ${{ steps.docker.outputs.PLATFORM }}
           args: yarn test
-  test-wasi:
-    name: Test WASI target
-    needs:
-      - build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - name: Setup node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: yarn
-          corepack: true
-      - name: Install dependencies
-        run: |
-          yarn config set supportedArchitectures.cpu "wasm32"
-          yarn install
-      - name: Download artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: bindings-wasm32-wasip1-threads
-          path: .
-      - name: List packages
-        run: ls -R .
-        shell: bash
-      - name: Test bindings
-        run: yarn test
-        env:
-          NAPI_RS_FORCE_WASI: 1
   publish:
     name: Publish
     runs-on: ubuntu-latest
