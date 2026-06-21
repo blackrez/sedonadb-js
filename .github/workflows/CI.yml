@@ -130,6 +130,7 @@ jobs:
           docker run \
             --rm \
             --name "build-${TARGET}" \
+            -e TARGET="${TARGET}" \
             -v "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
             -w "${GITHUB_WORKSPACE}" \
             -v /home/runner/.cargo/registry:/root/.cargo/registry \
