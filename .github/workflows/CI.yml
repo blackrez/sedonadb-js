@@ -135,12 +135,12 @@ jobs:
             -v /home/runner/.cargo/git:/root/.cargo/git
             --platform ${{ steps.docker.outputs.PLATFORM }}
           args: |
-            apk add --no-cache build-base cmake geos-dev geos-static proj-dev gdal-dev abseil-cpp-dev openssl-dev linux-headers python3-dev curl  &&
+            apk add --no-cache build-base clang clang-dev cmake geos-dev geos-static proj-dev gdal-dev abseil-cpp-dev openssl-dev linux-headers python3-dev curl  &&
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable -t ${{ matrix.settings.target }} &&
             source "$HOME/.cargo/env" &&
             corepack enable &&
             yarn install &&
-            yarn build --target ${{ matrix.settings.target }} -F static-geos
+            CC=clang CXX=clang++ yarn build --target ${{ matrix.settings.target }} -F static-geos
 
       - name: Install GEOS (Linux)
         if: matrix.settings.target == 'x86_64-unknown-linux-gnu' || matrix.settings.target == 'aarch64-unknown-linux-gnu'
