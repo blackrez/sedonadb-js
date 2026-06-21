@@ -66,7 +66,7 @@ jobs:
             target: aarch64-pc-windows-msvc
           - host: ubuntu-26.04
             target: x86_64-unknown-linux-gnu
-            build: CC=clang CXX=clang++ CC_x86_64_unknown_linux_gnu=clang CXX_x86_64_unknown_linux_gnu=clang++ yarn build --target x86_64-unknown-linux-gnu --use-napi-cross 
+            build: yarn build --target x86_64-unknown-linux-gnu
           - host: ubuntu-26.04
             target: x86_64-unknown-linux-musl
             build: yarn build --target x86_64-unknown-linux-musl -F static-geos
@@ -101,7 +101,6 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            ~/.napi-rs
             .cargo-cache
             target/
           key: ${{ matrix.settings.target }}-cargo-${{ matrix.settings.host }}
@@ -142,7 +141,7 @@ jobs:
             yarn install &&
             CC=clang CXX=clang++ yarn build --target ${{ matrix.settings.target }} -F static-geos
 
-      - name: Install GEOS (Linux)
+      - name: Install system dependencies (Linux)
         if: matrix.settings.target == 'x86_64-unknown-linux-gnu' || matrix.settings.target == 'aarch64-unknown-linux-gnu'
         run: sudo apt-get update && sudo apt-get install -y build-essential cmake libssl-dev libproj-dev libgeos-dev libgdal-dev python3-dev libabsl-dev clang libclang-dev
 
