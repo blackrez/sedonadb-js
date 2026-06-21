@@ -137,7 +137,7 @@ jobs:
             --platform "${PLATFORM}" \
             "node:24-alpine" \
             sh -c "
-              apk add --no-cache build-base clang clang-dev cmake geos-dev geos-static proj-dev gdal-dev abseil-cpp-dev openssl-dev linux-headers python3-dev curl &&
+              apk add --no-cache build-base clang clang-dev cmake geos-dev geos proj-dev gdal-dev abseil-cpp-dev openssl-dev linux-headers python3-dev curl &&
               curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable -t ${TARGET} &&
               . \"\$HOME/.cargo/env\" &&
               corepack enable &&
@@ -160,8 +160,7 @@ jobs:
         run: |
           $triplet = if ('${{ matrix.settings.host }}' -eq 'windows-11-arm') { 'arm64-windows' } else { 'x64-windows' }
           vcpkg install abseil geos --triplet $triplet
-          echo "GEOS_LIB_DIR=$env:
-          KG_INSTALLATION_ROOT\installed\$triplet\lib" >> $env:GITHUB_ENV
+          echo "GEOS_LIB_DIR=$env:VCPKG_INSTALLATION_ROOT\installed\$triplet\lib" >> $env:GITHUB_ENV
           echo "GEOS_VERSION=3.14.1" >> $env:GITHUB_ENV
 
       - name: Install dependencies
