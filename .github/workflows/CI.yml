@@ -145,6 +145,8 @@ jobs:
               . \"\$HOME/.cargo/env\" &&
               corepack enable &&
               yarn install &&
+              # Clean stale cmake cache that may have been built with a different compiler
+              find target/${TARGET}/release/build -name "CMakeCache.txt" -delete 2>/dev/null; true &&
               yarn build --target ${TARGET} -F static-geos
             "
         shell: bash
