@@ -138,7 +138,7 @@ jobs:
             "node:24-alpine" \
             sh -c "
               case \"\${TARGET}\" in aarch64*) apk add --no-cache gcc-aarch64-linux-musl ;; esac &&
-              apk add --no-cache build-base clang clang-dev cmake geos-dev geos-static proj-dev gdal-dev abseil-cpp-dev openssl-dev linux-headers python3-dev curl icu-data-full &&
+              apk add --no-cache build-base clang clang-dev cmake geos-dev geos proj-dev gdal-dev abseil-cpp-dev openssl-dev linux-headers python3-dev curl icu-data-full &&
               curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable -t ${TARGET} &&
               . \"\$HOME/.cargo/env\" &&
               corepack enable &&
