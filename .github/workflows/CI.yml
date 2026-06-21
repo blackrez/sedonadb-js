@@ -131,6 +131,8 @@ jobs:
             --rm \
             --name "build-${TARGET}" \
             -e TARGET="${TARGET}" \
+            -e CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER="gcc" \
+            -e CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER="gcc" \
             -v "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
             -w "${GITHUB_WORKSPACE}" \
             -v /home/runner/.cargo/registry:/root/.cargo/registry \
@@ -138,7 +140,6 @@ jobs:
             --platform "${PLATFORM}" \
             "node:24-alpine" \
             sh -c "
-              case \"\${TARGET}\" in aarch64*) apk add --no-cache gcc-aarch64-linux-musl ;; esac &&
               apk add --no-cache build-base clang clang-dev cmake geos-dev geos proj-dev gdal-dev abseil-cpp-dev openssl-dev linux-headers python3-dev curl icu-data-full &&
               curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable -t ${TARGET} &&
               . \"\$HOME/.cargo/env\" &&
