@@ -215,13 +215,9 @@ jobs:
           - x86_64-unknown-linux-musl
           - aarch64-unknown-linux-gnu
           - aarch64-unknown-linux-musl
-          - armv7-unknown-linux-gnueabihf
         node:
           - '22'
           - '24'
-        exclude:
-          - target: armv7-unknown-linux-gnueabihf
-            node: '24'
     runs-on: ${{ contains(matrix.target, 'aarch64') && 'ubuntu-26.04-arm' || 'ubuntu-26.04' }}
     steps:
       - uses: actions/checkout@v6
@@ -237,8 +233,6 @@ jobs:
           node -e "
             if ('${{ matrix.target }}'.startsWith('aarch64')) {
               console.log('PLATFORM=linux/arm64')
-            } else if ('${{ matrix.target }}'.startsWith('armv7')) {
-              console.log('PLATFORM=linux/arm/v7')
             } else {
               console.log('PLATFORM=linux/amd64')
             }
@@ -263,20 +257,28 @@ jobs:
       - name: List packages
         run: ls -R .
         shell: bash
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
-        if: ${{ contains(matrix.target, 'armv7') }}
-        with:
-          platforms: all
-      - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-        if: ${{ contains(matrix.target, 'armv7') }}
-      - name: Test bindings
-        uses: tj-actions/docker-run@v2
-        with:
-          image: ${{ steps.docker.outputs.IMAGE }}
-          name: test-bindings-${{ matrix.target }}
-          options: -v ${{ github.workspace }}:${{ github.workspace }} -w ${{ github.workspace }} --platform ${{ steps.docker.outputs.PLATFORM }}
-          args: yarn test
+      - name: Install system dependencies (glibc — host test)
+        if: ${{ !contains(matrix.target, 'musl') }}
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake libssl-dev libproj-dev libgeos-dev libgdal-dev python3-dev libabsl-dev clang libclang-dev libc++-dev libc++abi-dev
+      - name: Test bindings (musl — Alpine Docker)
+        if: ${{ contains(matrix.target, 'musl') }}
+        env:
+          TARGET: ${{ matrix.target }}
+          PLATFORM: ${{ steps.docker.outputs.PLATFORM }}
+          IMAGE: ${{ steps.docker.outputs.IMAGE }}
+        run: |
+          docker run \
+            --rm \
+            --name "test-bindings-${TARGET}" \
+            -v "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
+            -w "${GITHUB_WORKSPACE}" \
+            --platform "${PLATFORM}" \
+            "${IMAGE}" \
+            yarn test
+        shell: bash
+      - name: Test bindings (glibc — host)
+        if: ${{ !contains(matrix.target, 'musl') }}
+        run: yarn test
   benchmark:
     name: Benchmark
     needs: build
