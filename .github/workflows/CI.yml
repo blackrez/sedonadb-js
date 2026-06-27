@@ -34,10 +34,13 @@ jobs:
           cache: 'yarn'
           corepack: true
 
-      - name: Install
+      - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
+
+      - name: Install system dependencies (clippy)
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake libssl-dev libclang-dev clang
 
       - name: Install dependencies
         run: yarn install
