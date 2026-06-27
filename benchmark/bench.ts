@@ -5,7 +5,7 @@ import { join } from 'path'
 // ── Configuration ──────────────────────────────────────────────────────
 const DATA_DIR = process.env.DATA_DIR || ''
 const TABLES = ['building', 'customer', 'driver', 'trip', 'vehicle', 'zone']
-const hasData = DATA_DIR !== '' && TABLES.some((t) => existsSync(join(DATA_DIR, t)))
+const hasData = DATA_DIR !== '' && TABLES.some((t) => existsSync(join(DATA_DIR, t)) || existsSync(join(DATA_DIR, `${t}.parquet`)))
 const QUERY_TIMEOUT_MS = 60_000 // 60s per query
 
 // ── SpatialBench SQL Queries (SedonaDB dialect) ───────────────────────
