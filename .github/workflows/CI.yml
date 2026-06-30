@@ -26,24 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
-      - name: Setup node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: 'yarn'
-          corepack: true
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy, rustfmt
-
-      - name: Install system dependencies (clippy)
-        run: sudo apt-get update && sudo apt-get install -y build-essential cmake libssl-dev libclang-dev clang
-
-      - name: Install dependencies
-        run: yarn install
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features
 
       - name: Oxlint
         run: yarn lint
